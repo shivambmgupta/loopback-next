@@ -10,7 +10,7 @@ import {
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
   del,
@@ -21,7 +21,7 @@ import {
   patch,
   post,
   put,
-  requestBody,
+  requestBody
 } from '@loopback/rest';
 import {Todo} from '../models';
 import {TodoRepository} from '../repositories';
@@ -91,7 +91,9 @@ export class TodoController {
     @param.path.number('id') id: number,
     @param.filter(Todo, {exclude: 'where'}) filter?: FilterExcludingWhere<Todo>,
   ): Promise<Todo> {
-    return this.todoRepository.findById(id, filter);
+    // Here, wanted to read the data from primary server.
+    const options = { readPreference: "primary" }
+    return this.todoRepository.findById(id, filter, options);
   }
 
   @get('/todos', {
@@ -110,7 +112,15 @@ export class TodoController {
     },
   })
   async find(@param.filter(Todo) filter?: Filter<Todo>): Promise<Todo[]> {
-    return this.todoRepository.find(filter);
+    /**
+     * Wanted to update the readPreference to secondary at the real time.
+     * Notice: Not want to update the readPreference at the application level
+     * which is set to primaryPreferred. But at the repository level (momentarily, more precisely).
+     * Now, the following snippet does not seem to work and the request are still
+     * going to primary server.
+     */
+    const options = { readPreference: "secondary" }
+    return this.todoRepository.find(filter, options);
   }
 
   @put('/todos/{id}', {
